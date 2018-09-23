@@ -2,8 +2,8 @@
 
 Anki is a popular open-source spaced-repetition flashcard program, see:
 
-https://apps.ankiweb.net/
-https://github.com/dae/anki
+- https://apps.ankiweb.net/
+- https://github.com/dae/anki
 
 This tool generates decks to help learn the names of Princeton undergraduates. It obtains its directory information (the full name) and images from the [Tigerbook API](https://github.com/alibresco/tigerbook-api).
 
