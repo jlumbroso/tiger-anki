@@ -112,10 +112,20 @@ def create_deck(students, name="Princeton Undergrads", output="output.apkg"):
     finally:
         os.chdir(IMG_DIR)
 
+    added_students = []
+
     for student in students:
         student_info = tigerbook_lookup(netid=student)
+
+        # No student info
         if student_info == None:
             continue
+        
+        # No photo
+        if not os.path.exists(tigerbook_imgpath(netid=student, no_prefix=True)):
+            continue
+
+        added_students.append(student)
 
         student_note = genanki.Note(
             model=anki_undergrad_model,
@@ -128,7 +138,7 @@ def create_deck(students, name="Princeton Undergrads", output="output.apkg"):
 
     package_obj = genanki.Package(deck_obj)
     package_obj.media_files = list(map(
-        lambda x: tigerbook_imgpath(netid=x, no_prefix=True), students))
+        lambda x: tigerbook_imgpath(netid=x, no_prefix=True), added_students))
     
     package_obj.write_to_file(os.path.join(initial_cwd, output))
     os.chdir(initial_cwd)
