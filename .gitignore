@@ -7,6 +7,9 @@ images/
 # Python cache
 __pycache__
 
+# Generated decks
+*.apkg
+
 # Temporary sandbox Jupyter notebook
 Sandbox.ipynb
 
