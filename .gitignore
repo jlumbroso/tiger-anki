@@ -1,6 +1,15 @@
 # Credentials
 tigerbook_credentials.py
 
+# Image cache
+images/
+
+# Python cache
+__pycache__
+
+# Temporary sandbox Jupyter notebook
+Sandbox.ipynb
+
 # Jupyter notebook cache
 .ipynb_checkpoints
 
