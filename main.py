@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 import hashlib
 import os
@@ -8,6 +9,7 @@ import urllib.request
 from base64 import b64encode
 from datetime import datetime
 
+import click
 import genanki
 import requests
 
@@ -15,8 +17,8 @@ try:
     from tigerbook_credentials import API_KEY as TIGERBOOK_KEY
     from tigerbook_credentials import USERNAME as TIGERBOOK_USR
 except ImportError:
-    TIGERBOOK_KEY = None
-    TIGERBOOK_USER = None
+    TIGERBOOK_USR = os.environ.get("TIGERBOOK_USR", None)
+    TIGERBOOK_KEY = os.environ.get("TIGERBOOK_KEY", None)
 
 TIGERBOOK_IMG="https://tigerbook.herokuapp.com/images/"
 TIGERBOOK_API="https://tigerbook.herokuapp.com/api/v1/undergraduates/"
@@ -129,5 +131,14 @@ def get_wsse_headers(username, password):
     }
     return headers
 
+@click.command()
+@click.option("-v", "--validate/--no-validate", default=False)
+@click.option("-u", "--user", default=TIGERBOOK_USR, help="Tigerbook API username", prompt=(TIGERBOOK_USR==None))
+@click.option("-k", "--key", default=TIGERBOOK_KEY, help="Tigerbook API key", prompt=(TIGERBOOK_KEY==None))
+@click.option("-o", "--output", default="deck.apkg", help="Filename for created deck")
+@click.argument("students", nargs=-1)
+def cli_root(validate, user, key, output, students):
+    print(validate, user, key, output, students)
+
 if __name__ == "__main__" and len(sys.argv) > 0 and sys.argv[0] != "":
-    pass
+    cli_root()
