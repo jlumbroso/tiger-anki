@@ -1,0 +1,11 @@
+# Credentials
+tigerbook_credentials.py
+
+# Jupyter notebook cache
+.ipynb_checkpoints
+
+# Visual Studio metadata
+.vscode
+
+# macOS metadata
+.DS_Store
