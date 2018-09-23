@@ -17,7 +17,7 @@ from tigerbook_credentials import USERNAME as TIGERBOOK_USR
 TIGERBOOK_IMG="https://tigerbook.herokuapp.com/images/"
 TIGERBOOK_API="https://tigerbook.herokuapp.com/api/v1/undergraduates/"
 
-IMG_DIR=""#images/"
+IMG_DIR="images/"
 
 def tigerbook_imgpath(netid=None, jpeg=False):
     if netid and not "{{" in netid:
@@ -55,19 +55,19 @@ anki_undergrad_model = genanki.Model(
   fields=[
     {'name': 'Name'},
     {'name': 'Netid'},
+    {'name': 'Image'}
   ],
   templates=[
     {
       'name': 'Name to Face',
       'qfmt': '{{Name}}',
       'afmt': (
-          '{{FrontSide}}<hr id="answer"><img src="%s">'
-          % tigerbook_imgpath("{{Netid}}", jpeg=True)
+          '{{FrontSide}}<hr id="answer">{{Image}}'
       ),
     },
     {
       'name': 'Face to Name',
-      'qfmt': '<img src="%s">' % tigerbook_imgpath("{{Netid}}", jpeg=True) ,
+      'qfmt': '{{Image}}' ,
       'afmt': '{{FrontSide}}<hr id="answer">{{Name}}',
     },
   ])
@@ -90,16 +90,15 @@ def create_deck(students, name="Princeton Undergrads"):
             model=anki_undergrad_model,
             fields=[
                 "{full_name}".format(**student_info),
-                "{net_id}".format(**student_info)])
+                "{net_id}".format(**student_info),
+                "<img src='{}' />".format(tigerbook_imgpath(netid=student))])
 
         deck_obj.add_note(student_note)
     
     package_obj = genanki.Package(deck_obj)
     package_obj.media_files = list(map(
         lambda x: tigerbook_imgpath(netid=x), students)) + ["al38.jpeg"]
-    print(list(map(
-        lambda x: tigerbook_imgpath(netid=x), students)))
-
+    
     package_obj.write_to_file('output.apkg')
 
 
