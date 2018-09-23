@@ -11,8 +11,12 @@ from datetime import datetime
 import genanki
 import requests
 
-from tigerbook_credentials import API_KEY as TIGERBOOK_KEY
-from tigerbook_credentials import USERNAME as TIGERBOOK_USR
+try:
+    from tigerbook_credentials import API_KEY as TIGERBOOK_KEY
+    from tigerbook_credentials import USERNAME as TIGERBOOK_USR
+except ImportError:
+    TIGERBOOK_KEY = None
+    TIGERBOOK_USER = None
 
 TIGERBOOK_IMG="https://tigerbook.herokuapp.com/images/"
 TIGERBOOK_API="https://tigerbook.herokuapp.com/api/v1/undergraduates/"
@@ -107,6 +111,9 @@ def get_wsse_headers(username, password):
     Returns the WSSE headers needed for authentication
     into the Tigerbook API / website.
     """
+    if username == None or password == None:
+        return {}
+    
     NONCE_SIGNATURE = (
         "0123456789abcdefghijklmnopqrstuvwxyz" +
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ+/=")
