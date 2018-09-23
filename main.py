@@ -53,7 +53,7 @@ def tigerbook_lookup(netid):
     r = requests.get(
         url=urllib.parse.urljoin(TIGERBOOK_API, netid),
         headers=get_wsse_headers(TIGERBOOK_USR, TIGERBOOK_KEY))
-        
+
     if r.ok:
         data = r.json()
         TIGERBOOK_CACHE[netid] = data
@@ -161,7 +161,10 @@ def validate_netid(s):
     if s == None or not type(s) is str or len(s) == 0 or len(s) > 8:
         return False
     return s.isalnum()
-    
+
+def click_print_help_msg(command, info_name):
+    with click.Context(command, info_name=info_name) as ctx:
+        click.echo(command.get_help(ctx))
 
 @click.command()
 @click.option("-c", "--check/--no-check", default=False, help="Prefilter provided student NetIDs")
@@ -178,6 +181,11 @@ def cli_root(check, user, key, cache, output, title, students):
     student identifier).
     """
     global TIGERBOOK_CACHE
+
+    # Print help message if no students provided:
+    if len(students) == 0:
+        click_print_help_msg(cli_root, "tiger-anki")
+        return
 
     # Load Tigerbook cache
     try:
