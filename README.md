@@ -12,6 +12,28 @@ For instance, to generate a deck for my COS 126 precept P06, I would call the pr
 $ tiger-anki -c -o cos126_p06.apkg -t "COS126_F2018 P06" al38 blhuynh chizewer dorisli ethanl ggrajeda harir ik5 jx5 mab7 manicone mhito mmishra myzheng nhurley ryanz sprindle vtalvola zalmover
 ```
 
+## Documentation
+
+The command-line tool has its own documentation:
+
+```
+$ ./main.py --help
+Usage: main.py [OPTIONS] [STUDENTS]...
+
+  Generate an Anki deck to learn the names of a set of Princeton
+  undergraduate students, specified by their NetID (official, eight
+  alphanumerical character long, student identifier).
+
+Options:
+  -c, --check / --no-check  Prefilter provided student NetIDs
+  -u, --user TEXT           Tigerbook API username
+  -k, --key TEXT            Tigerbook API key
+  -n, --cache / --no-cache  Tigerbook API cache
+  -o, --output TEXT         Filename for created deck
+  -t, --title TEXT          Name of the Deck
+  --help                    Show this message and exit.
+```
+
 ## Dependencies
 
 This tool is built on top of [genanki](https://github.com/kerrickstaley/genanki), to produce Anki decks. It also uses `requests` (to interact with the Tigerbook API) and `click` (to provide a command-line interface).
