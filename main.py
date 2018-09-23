@@ -81,16 +81,16 @@ anki_undergrad_model = genanki.Model(
   ],
   templates=[
     {
+      'name': 'Face to Name',
+      'qfmt': '{{Image}}' ,
+      'afmt': '{{FrontSide}}<hr id="answer">{{Name}}',
+    },
+    {
       'name': 'Name to Face',
       'qfmt': '{{Name}}',
       'afmt': (
           '{{FrontSide}}<hr id="answer">{{Image}}'
       ),
-    },
-    {
-      'name': 'Face to Name',
-      'qfmt': '{{Image}}' ,
-      'afmt': '{{FrontSide}}<hr id="answer">{{Name}}',
     },
   ])
 
