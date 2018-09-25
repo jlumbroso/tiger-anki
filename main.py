@@ -25,6 +25,23 @@ TIGERBOOK_IMG="https://tigerbook.herokuapp.com/images/"
 TIGERBOOK_API="https://tigerbook.herokuapp.com/api/v1/undergraduates/"
 TIGERBOOK_CACHE = {}
 
+def tigerbook_load_cache():
+    global TIGERBOOK_CACHE
+    try:
+        if cache:
+            TIGERBOOK_CACHE = json.loads(open(tigerbook_imgpath("data.json")).read())
+    except:
+        TIGERBOOK_CACHE = {}
+
+def tigerbook_save_cache():
+    global TIGERBOOK_CACHE
+    try:
+        if cache:
+            with open(tigerbook_imgpath("data.json"), "w") as f:
+                f.write(json.dumps(TIGERBOOK_CACHE, indent=2))
+    except:
+        pass
+
 IMG_DIR="images/"
 
 def tigerbook_imgpath(netid=None, no_prefix=False):
@@ -198,11 +215,7 @@ def cli_root(check, user, key, cache, output, title, students):
         return
 
     # Load Tigerbook cache
-    try:
-        if cache:
-            TIGERBOOK_CACHE = json.loads(open(tigerbook_imgpath("data.json")).read())
-    except:
-        TIGERBOOK_CACHE = {}
+    tigerbook_load_cache()
 
     # Pre-filter NetIDs
     if check:
@@ -219,12 +232,7 @@ def cli_root(check, user, key, cache, output, title, students):
         output=output)
 
     # Save Tigerbook cache
-    try:
-        if cache:
-            with open(tigerbook_imgpath("data.json"), "w") as f:
-                f.write(json.dumps(TIGERBOOK_CACHE, indent=2))
-    except:
-        pass
+    tigerbook_save_cache()
 
 if __name__ == "__main__" and len(sys.argv) > 0 and sys.argv[0] != "":
     cli_root()
