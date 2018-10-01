@@ -14,6 +14,8 @@ import click
 import genanki
 import requests
 
+###############################################################################
+
 try:
     from tigerbook_credentials import API_KEY as TIGERBOOK_KEY
     from tigerbook_credentials import USERNAME as TIGERBOOK_USR
@@ -23,28 +25,59 @@ except ImportError:
 
 TIGERBOOK_IMG="https://tigerbook.herokuapp.com/images/"
 TIGERBOOK_API="https://tigerbook.herokuapp.com/api/v1/undergraduates/"
-TIGERBOOK_CACHE = {}
 
-def tigerbook_load_cache():
-    global TIGERBOOK_CACHE
+###############################################################################
+
+DEBUG=True
+
+def _printdebug(msg="debug print message"):
+    if DEBUG:
+        from inspect import currentframe, getframeinfo
+        callingframe = currentframe().f_back
+        cf_info = getframeinfo(callingframe)
+        print("{filename}:{line}: {msg}".format(
+            filename=cf_info.filename,
+            line=cf_info.lineno,
+            msg=msg))
+
+###############################################################################
+
+LOCAL_CACHE_DICT = {}
+
+def cache_load():
+    global LOCAL_CACHE_DICT
     try:
-        if cache:
-            TIGERBOOK_CACHE = json.loads(open(tigerbook_imgpath("data.json")).read())
+        LOCAL_CACHE_DICT = json.loads(
+            open(cache_buildpath("data.json")).read())
     except:
-        TIGERBOOK_CACHE = {}
-
-def tigerbook_save_cache():
-    global TIGERBOOK_CACHE
+        LOCAL_CACHE_DICT = {}
+    
+    # Try to load CS people
     try:
-        if cache:
-            with open(tigerbook_imgpath("data.json"), "w") as f:
-                f.write(json.dumps(TIGERBOOK_CACHE, indent=2))
+        import cs_people
+        cs_people_dict = cs_people.loadfeeds()
+        _printdebug(cs_people_dict)
+        cs_people_dict = cs_people.filter_pictureless(cs_people_dict)
+        _printdebug(cs_people_dict)
+        for row in cs_people_dict.values():
+            row["source"] = "cs"
+        _printdebug(cs_people_dict)
+        LOCAL_CACHE_DICT.update(cs_people_dict)
+    except ImportError:
+        raise
+        _printdebug("import err for cs_people")
+
+def cache_save():
+    global LOCAL_CACHE_DICT
+    try:
+        with open(cache_buildpath("data.json"), "w") as f:
+            f.write(json.dumps(LOCAL_CACHE_DICT, indent=2))
     except:
         pass
 
 IMG_DIR="images/"
 
-def tigerbook_imgpath(netid=None, no_prefix=False):
+def cache_buildpath(netid=None, no_prefix=False):
     if netid and not "{{" in netid:
         netid = netid.lower()
     else:
@@ -57,24 +90,91 @@ def tigerbook_imgpath(netid=None, no_prefix=False):
     else:
         return "{}{}{}".format(IMG_DIR, netid, ext)
 
-def tigerbook_lookup(netid):
-    global TIGERBOOK_CACHE
+###############################################################################
 
+def lookup(netid):
+
+    person = None
+
+    try:
+        person = cs_lookup(netid=netid)
+    except:
+        person = None
+        raise
+
+    if person:
+        return person
+    
+    try:
+        person = tigerbook_lookup(netid=netid)
+    except:
+        person = None
+        raise
+        
+    if person:
+        return person
+
+def cs_lookup(netid):
+    global LOCAL_CACHE_DICT
+    _printdebug()
     # Cached the directory info
-    if netid in TIGERBOOK_CACHE:
-        # And also cached the student photo
-        if os.path.exists(tigerbook_imgpath(netid=netid, no_prefix=True)):
-            # So no need to make any requests
-            return TIGERBOOK_CACHE[netid]
+    if netid in LOCAL_CACHE_DICT:
+        _printdebug()
+        record = LOCAL_CACHE_DICT[netid]
+
+        # First check that it is a Tigerbook entry
+        if "source" in record and record["source"] == "cs":
+            _printdebug()
+            # And also cached the student photo
+            if os.path.exists(cache_buildpath(netid=netid)):
+                _printdebug()
+                # So no need to make any requests
+                return LOCAL_CACHE_DICT[netid]
+
+            elif "photo_link" in record:
+                _printdebug()
+                # Retrieve and save image in local directory
+                r = requests.get(url=record["photo_link"])
+                
+                if r.ok and not os.path.exists(cache_buildpath(netid=netid)):
+                    _printdebug()
+                    image = r.content
+                    open(cache_buildpath(netid=netid), "wb").write(image)
+                    return LOCAL_CACHE_DICT[netid]
+    _printdebug()
+    # CS people cannot be returned if not from cache
+    return None
+
+def tigerbook_lookup(netid):
+    global LOCAL_CACHE_DICT
+    _printdebug(netid in LOCAL_CACHE_DICT)
+    # Cached the directory info
+    if netid in LOCAL_CACHE_DICT:
+        _printdebug()
+        record = LOCAL_CACHE_DICT[netid]
+        _printdebug()
+        # First check that it is a Tigerbook entry
+        if "source" in record and record["source"] == "tigerbook":
+            # And also cached the student photo
+            _printdebug()
+            if os.path.exists(cache_buildpath(netid=netid)):
+                # So no need to make any requests
+                _printdebug()
+                return LOCAL_CACHE_DICT[netid]
 
     r = requests.get(
         url=urllib.parse.urljoin(TIGERBOOK_API, netid),
         headers=get_wsse_headers(TIGERBOOK_USR, TIGERBOOK_KEY))
+    _printdebug((TIGERBOOK_USR, TIGERBOOK_KEY))
+    _printdebug(urllib.parse.urljoin(TIGERBOOK_API, netid))
+    _printdebug((r.status_code, r.content))
 
     if r.ok:
+        _printdebug()
         data = r.json()
-        TIGERBOOK_CACHE[netid] = data
-
+        data["source"] = "tigerbook"
+        LOCAL_CACHE_DICT[netid] = data
+        _printdebug()
         # Also retrieve and save image in local directory
         r = requests.get(
             url=data.get(
@@ -82,11 +182,14 @@ def tigerbook_lookup(netid):
                 urllib.parse.urljoin(TIGERBOOK_IMG, netid)),
             headers=get_wsse_headers(TIGERBOOK_USR, TIGERBOOK_KEY))
         
-        if r.ok and not os.path.exists(tigerbook_imgpath(netid=netid, no_prefix=True)):
+        if r.ok and not os.path.exists(cache_buildpath(netid=netid)):
+            _printdebug()
             image = r.content
-            open(tigerbook_imgpath(netid=netid, no_prefix=True), "wb").write(image)
-        
+            open(cache_buildpath(netid=netid), "wb").write(image)
+        _printdebug(data)
         return data
+
+###############################################################################
 
 anki_undergrad_model = genanki.Model(
   1941463750,
@@ -112,7 +215,29 @@ anki_undergrad_model = genanki.Model(
   ])
 
 
-def create_deck(students, name="Princeton Undergrads", output="output.apkg"):
+def create_deck(persons, name="Princeton Undergrads", output="output.apkg"):
+
+    # Validate the persons that were requested
+
+    validated_persons = []
+
+    for person_id in persons:
+        person = lookup(netid=person_id)
+
+        # No student info
+        if person == None:
+            continue
+        
+        # No photo
+        if not os.path.exists(cache_buildpath(netid=person_id)):
+            continue
+        
+        validated_persons.append((person_id, person))
+    
+    validated_persons_id = map(lambda pair: pair[0], validated_persons)
+
+    # Build the deck
+
     deck_id = random.randrange(1 << 30, 1 << 31)
     deck_obj = genanki.Deck(
         deck_id,
@@ -129,33 +254,19 @@ def create_deck(students, name="Princeton Undergrads", output="output.apkg"):
     finally:
         os.chdir(IMG_DIR)
 
-    added_students = []
-
-    for student in students:
-        student_info = tigerbook_lookup(netid=student)
-
-        # No student info
-        if student_info == None:
-            continue
-        
-        # No photo
-        if not os.path.exists(tigerbook_imgpath(netid=student, no_prefix=True)):
-            continue
-
-        added_students.append(student)
-
+    for (person_id, person_info) in validated_persons:
         student_note = genanki.Note(
             model=anki_undergrad_model,
             fields=[
-                "{full_name}".format(**student_info),
-                "{net_id}".format(**student_info),
-                "<img src='{}' />".format(tigerbook_imgpath(netid=student, no_prefix=True))])
-
+                "{full_name}".format(**person_info),
+                "{net_id}".format(**person_info),
+                "<img src='{}' />".format(cache_buildpath(netid=person_id, no_prefix=True))])
+        
         deck_obj.add_note(student_note)
 
     package_obj = genanki.Package(deck_obj)
     package_obj.media_files = list(map(
-        lambda x: tigerbook_imgpath(netid=x, no_prefix=True), added_students))
+        lambda x: cache_buildpath(netid=x, no_prefix=True), validated_persons_id))
     
     package_obj.write_to_file(os.path.join(initial_cwd, output))
     os.chdir(initial_cwd)
@@ -207,7 +318,7 @@ def cli_root(check, user, key, cache, output, title, students):
     students, specified by their NetID (official, eight alphanumerical character long,
     student identifier).
     """
-    global TIGERBOOK_CACHE
+    global LOCAL_CACHE_DICT
 
     # Print help message if no students provided:
     if len(students) == 0:
@@ -215,7 +326,7 @@ def cli_root(check, user, key, cache, output, title, students):
         return
 
     # Load Tigerbook cache
-    tigerbook_load_cache()
+    cache_load()
 
     # Pre-filter NetIDs
     if check:
@@ -227,12 +338,12 @@ def cli_root(check, user, key, cache, output, title, students):
 
     # Create the deck
     create_deck(
-        students=students,
+        persons=students,
         name=title,
         output=output)
 
     # Save Tigerbook cache
-    tigerbook_save_cache()
+    cache_save()
 
 if __name__ == "__main__" and len(sys.argv) > 0 and sys.argv[0] != "":
     cli_root()
