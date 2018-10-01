@@ -28,7 +28,7 @@ TIGERBOOK_API="https://tigerbook.herokuapp.com/api/v1/undergraduates/"
 
 ###############################################################################
 
-DEBUG=True
+DEBUG=False
 
 def _printdebug(msg="debug print message"):
     if DEBUG:
@@ -56,16 +56,16 @@ def cache_load():
     try:
         import cs_people
         cs_people_dict = cs_people.loadfeeds()
-        _printdebug(cs_people_dict)
+        
         cs_people_dict = cs_people.filter_pictureless(cs_people_dict)
-        _printdebug(cs_people_dict)
+        
         for row in cs_people_dict.values():
             row["source"] = "cs"
-        _printdebug(cs_people_dict)
+        
         LOCAL_CACHE_DICT.update(cs_people_dict)
     except ImportError:
         raise
-        _printdebug("import err for cs_people")
+        
 
 def cache_save():
     global LOCAL_CACHE_DICT
@@ -116,65 +116,62 @@ def lookup(netid):
 
 def cs_lookup(netid):
     global LOCAL_CACHE_DICT
-    _printdebug()
+    
     # Cached the directory info
     if netid in LOCAL_CACHE_DICT:
-        _printdebug()
+        
         record = LOCAL_CACHE_DICT[netid]
 
         # First check that it is a Tigerbook entry
         if "source" in record and record["source"] == "cs":
-            _printdebug()
+            
             # And also cached the student photo
             if os.path.exists(cache_buildpath(netid=netid)):
-                _printdebug()
+                
                 # So no need to make any requests
                 return LOCAL_CACHE_DICT[netid]
 
             elif "photo_link" in record:
-                _printdebug()
+                
                 # Retrieve and save image in local directory
                 r = requests.get(url=record["photo_link"])
                 
                 if r.ok and not os.path.exists(cache_buildpath(netid=netid)):
-                    _printdebug()
+                    
                     image = r.content
                     open(cache_buildpath(netid=netid), "wb").write(image)
                     return LOCAL_CACHE_DICT[netid]
-    _printdebug()
+    
     # CS people cannot be returned if not from cache
     return None
 
 def tigerbook_lookup(netid):
     global LOCAL_CACHE_DICT
-    _printdebug(netid in LOCAL_CACHE_DICT)
+    
     # Cached the directory info
     if netid in LOCAL_CACHE_DICT:
-        _printdebug()
+        
         record = LOCAL_CACHE_DICT[netid]
-        _printdebug()
+        
         # First check that it is a Tigerbook entry
         if "source" in record and record["source"] == "tigerbook":
             # And also cached the student photo
-            _printdebug()
+            
             if os.path.exists(cache_buildpath(netid=netid)):
                 # So no need to make any requests
-                _printdebug()
+                
                 return LOCAL_CACHE_DICT[netid]
 
     r = requests.get(
         url=urllib.parse.urljoin(TIGERBOOK_API, netid),
         headers=get_wsse_headers(TIGERBOOK_USR, TIGERBOOK_KEY))
-    _printdebug((TIGERBOOK_USR, TIGERBOOK_KEY))
-    _printdebug(urllib.parse.urljoin(TIGERBOOK_API, netid))
-    _printdebug((r.status_code, r.content))
 
     if r.ok:
-        _printdebug()
+        
         data = r.json()
         data["source"] = "tigerbook"
         LOCAL_CACHE_DICT[netid] = data
-        _printdebug()
+        
         # Also retrieve and save image in local directory
         r = requests.get(
             url=data.get(
@@ -183,10 +180,10 @@ def tigerbook_lookup(netid):
             headers=get_wsse_headers(TIGERBOOK_USR, TIGERBOOK_KEY))
         
         if r.ok and not os.path.exists(cache_buildpath(netid=netid)):
-            _printdebug()
+            
             image = r.content
             open(cache_buildpath(netid=netid), "wb").write(image)
-        _printdebug(data)
+        
         return data
 
 ###############################################################################
