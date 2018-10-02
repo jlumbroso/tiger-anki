@@ -23,12 +23,15 @@ except ImportError:
     TIGERBOOK_USR = os.environ.get("TIGERBOOK_USR", None)
     TIGERBOOK_KEY = os.environ.get("TIGERBOOK_KEY", None)
 
+class TigerbookCredentialsException(Exception):
+    pass
+
 TIGERBOOK_IMG="https://tigerbook.herokuapp.com/images/"
 TIGERBOOK_API="https://tigerbook.herokuapp.com/api/v1/undergraduates/"
 
 ###############################################################################
 
-DEBUG=False
+DEBUG=True
 
 def _printdebug(msg="debug print message"):
     if DEBUG:
@@ -82,7 +85,10 @@ def cache_buildpath(netid=None, no_prefix=False):
         netid = netid.lower()
     else:
         netid = "{{Netid}}"
-    ext = ".png"
+    if netid in LOCAL_CACHE_DICT and LOCAL_CACHE_DICT[netid].get("source", "") == "cs":
+        ext = ".jpg"
+    else:
+        ext = ".png"
     if ".json" in netid:
         ext = ""
     if no_prefix:
@@ -107,6 +113,9 @@ def lookup(netid):
     
     try:
         person = tigerbook_lookup(netid=netid)
+    except TigerbookCredentialsException:
+        person = None
+        raise
     except:
         person = None
         raise
@@ -165,6 +174,9 @@ def tigerbook_lookup(netid):
     r = requests.get(
         url=urllib.parse.urljoin(TIGERBOOK_API, netid),
         headers=get_wsse_headers(TIGERBOOK_USR, TIGERBOOK_KEY))
+
+    if r.status_code == 401:
+        raise TigerbookCredentialsException("invalid password (api key needs to be defined or refreshed)")
 
     if r.ok:
         
@@ -235,13 +247,6 @@ def create_deck(persons, name="Princeton Undergrads", output="output.apkg"):
 
     # Build the deck
 
-    deck_id = random.randrange(1 << 30, 1 << 31)
-    deck_obj = genanki.Deck(
-        deck_id,
-        name)
-    
-    deck_obj.add_model(anki_undergrad_model)
-
     initial_cwd = os.getcwd()
     try:
         if not os.path.exists(IMG_DIR):
@@ -250,6 +255,13 @@ def create_deck(persons, name="Princeton Undergrads", output="output.apkg"):
         pass
     finally:
         os.chdir(IMG_DIR)
+
+    deck_id = random.randrange(1 << 30, 1 << 31)
+    deck_obj = genanki.Deck(
+        deck_id,
+        name)
+    
+    deck_obj.add_model(anki_undergrad_model)
 
     for (person_id, person_info) in validated_persons:
         student_note = genanki.Note(

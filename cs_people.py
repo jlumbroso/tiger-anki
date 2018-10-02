@@ -8,6 +8,7 @@ CS_BASE_ENDPOINT="http://www.cs.princeton.edu/people/"
 CATEGORIES=["faculty", "research", "researchinstructors", "restech", "admins", "grad"]
 SUBTYPES=["main", "emeritus", "associated"]
 
+
 def filter_pictureless(people, as_dict=None):
 
     if type(people) is dict:
@@ -44,7 +45,10 @@ def loadfeed(category="faculty", subtype=None):
     req = requests.get(urljoin(CS_BASE_ENDPOINT, category))
     if not req.ok:
         return
-    dom = bs4.BeautifulSoup(req.content, features="html5lib")
+    try:
+        dom = bs4.BeautifulSoup(req.content, features="html5lib")
+    except bs4.FeatureNotFound:
+        dom = bs4.BeautifulSoup(req.content, features="html.parser")
     people_divs = dom.find_all(name="div", attrs={ "class": "person" })
     
     
@@ -94,6 +98,11 @@ def loadfeed(category="faculty", subtype=None):
             
             # Email
             if "glyphicon-envelope" in item_type:
+
+                # Bad hack for bad HTML parsers
+                if "&commat" in text:
+                    text = text.replace("&commat", "@")
+
                 username = re.sub(r'\W+', '', text.split("@")[0])
                 domain = text.split("@")[1].strip().strip(')')
                 record["email"] = "{}@{}".format(username, domain)
